@@ -1,0 +1,129 @@
+- name: Install Java and ESRally on all instance
+  hosts: esrally-all-nodes
+  become: true
+  #become_user: bibrani
+
+  tasks: 
+  - name: update apt 
+    shell: |
+      sudo apt update && sudo apt install net-tools
+
+  - name: Update package cache
+    apt:
+      update_cache: yes
+
+  - name: Install AWS CLI
+    apt:
+      name: awscli
+      state: present
+
+  - name: Install Open JDK 17
+    shell: |
+      sudo apt install -y openjdk-17-jdk
+
+  - name: Set the JAVA_HOME in environment file
+    lineinfile:
+      path: /etc/environment
+      state: present
+      line: "{{ item }}"
+    with_items:
+      - 'JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"'
+    #  - 'JAVA_HOME="/usr/lib/jvm/java-17-openjdk-arm64"'
+     # - 'export PATH=$JAVA_HOME/bin:$PATH'
+     # - 'JAVA_OPTS="-XX:+UseZGC -Xmx4G"'
+
+  - name: Set the JAVA_HOME in environment file in home profile
+    become_user: ubuntu
+    lineinfile:
+      path: /home/ubuntu/.profile
+      state: present
+      line: "{{ item }}"
+    with_items:
+      - 'JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"'
+      - 'export PATH=$JAVA_HOME/bin:$PATH'
+
+  - name: Install pbzip pip3 rsync
+    shell: |
+      sudo apt install python3-pip rsync pbzip2 -y
+
+  - name: Install ESRally
+    shell: |
+      sudo pip3 install esrally
+
+  - name: Initiate ESRally to create benchmark folder
+    become_user: ubuntu
+    shell: |
+      esrally list tracks
+
+  - name: Source env
+    become_user: ubuntu
+    shell: |
+      source /etc/environment
+    args:
+      executable: /bin/bash  
+
+  - name: Copy folder repository benchmark-script to remote server
+    become_user: ubuntu
+    vars:
+        source_folder: "/home/bibrani/esrally-benchmark-script"
+        destination_folder: "/home/ubuntu"
+    ansible.posix.synchronize:
+      #mode: push
+      src: "{{ source_folder }}"
+      dest: "{{ destination_folder }}"
+      use_ssh_args: yes
+
+  - name: chmod 755 
+    become_user: ubuntu
+    ansible.builtin.shell: |
+      chmod 755 /home/{{ ansible_ssh_user }}/esrally-benchmark-script/*
+    args:
+      executable: /bin/bash
+
+- name: Start Benchmark 4G heapsize
+  hosts: esrally-4g-heapsize
+  become_user: ubuntu
+
+  tasks:
+  - name: Set Environment Variables
+    shell: |
+      export HOSTNAME="m7i-flex.large"
+    environment:
+      HOSTNAME: "m7i-flex.large"
+     
+  - name: execute benchmark with 4G HEAP 
+    become_user: ubuntu
+    shell: |
+      nohup /home/{{ ansible_ssh_user }}/esrally-benchmark-script/benchmark_script-4g.sh > /dev/null 2>&1 
+
+- name: Start Benchmark 8G heapsize
+  hosts: esrally-8g-heapsize
+  become_user: ubuntu
+
+  tasks:
+  - name: Set Environment Variables
+    shell: |
+      export HOSTNAME="m7i-flex.xlarge"
+    environment:
+      HOSTNAME: "m7i-flex.xlarge"
+
+  - name: execute benchmark with 8G HEAP 
+    become_user: ubuntu
+    shell: |
+      nohup /home/{{ ansible_ssh_user }}/esrally-benchmark-script/benchmark_script-8g.sh > /dev/null 2>&1 
+
+- name: Start Benchmark 16G heapsize
+  hosts: esrally-16g-heapsize
+  become_user: ubuntu
+  
+  tasks:
+  - name: Set Environment Variables
+    shell: |
+      export HOSTNAME="m7i-flex.2xlarge"
+    environment:
+      HOSTNAME: "m7i-flex.2xlarge"
+
+  - name: execute benchmark with 16G HEAP 
+    become_user: ubuntu
+    shell: |
+      nohup /home/{{ ansible_ssh_user }}/esrally-benchmark-script/benchmark_script-16g.sh > /dev/null 2>&1 
