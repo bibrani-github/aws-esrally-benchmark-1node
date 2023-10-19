@@ -27,10 +27,10 @@
       state: present
       line: "{{ item }}"
     with_items:
+      # For X86 Proc
       - 'JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"'
-    #  - 'JAVA_HOME="/usr/lib/jvm/java-17-openjdk-arm64"'
-     # - 'export PATH=$JAVA_HOME/bin:$PATH'
-     # - 'JAVA_OPTS="-XX:+UseZGC -Xmx4G"'
+      # For Arm Proc
+      #  - 'JAVA_HOME="/usr/lib/jvm/java-17-openjdk-arm64"'
 
   - name: Set the JAVA_HOME in environment file in home profile
     become_user: ubuntu
